@@ -1,14 +1,28 @@
 const express = require("express");
+const cors = require('cors');
 const mysql = require('mysql')
 
 const app = express();
 const port = process.env.PORT || 8000;
+app.use(cors());
 
-//Database
-const connection = mysql.createConnection({
+//Start the server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
+//Start the connection to the database
+const connection = mysql.createConnection({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+});
+
+//Connect to the database
 connection.connect((err) => {
+  //Make sure no errors
   if (err) {
     console.error('Error connecting to MySQL: ' + err.stack);
     return;
@@ -16,63 +30,34 @@ connection.connect((err) => {
   console.log('Connected to MySQL as ID ' + connection.threadId);
 });
 
+//Main API request - Selects speed data from the database
+app.get("/road-data", (req, res) => {
+  
+  //Get the variables from the request
+  const route = req.query.route;
+  const day = req.query.day;;
+  const hour = req.query.hour;
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+  //Write a message to log to signal that someone requested
+  console.log("Requested: " + route + ", on " + day + ", at " + hour);
 
-app.get("/page", (req, res) => {
-  res.send("Page!");
-});
+  //Query for the database to select the correct data
+  let query = 'SELECT at_data.speed_data.dataCount, at_data.road_data.latA, at_data.road_data.lonA, at_data.road_data.latB, ';
+  query += 'at_data.road_data.lonB, at_data.road_data.roadName, at_data.speed_data.sumSpeed, at_data.road_data.maxSpeed ';
+  query += 'FROM at_data.road_data inner join at_data.speed_data ON at_data.road_data.roadID = at_data.speed_data.roadID ';
+  query += 'WHERE at_data.road_data.roadID IN (SELECT roadID FROM at_data.route_data WHERE routeID = \'' + route + '\') ';
+  query += 'AND day = \'' + day + '\' AND hour = \'' + hour + '\';';
 
-app.get("/echo", (req, res) => {
-  res.send(req.query);
-});
-
-app.get("/api", (req, res) => {
-  connection.query('SELECT * FROM testtable', (err, results) => {
+  //Execute the query
+  connection.query(query, (err, results) => {
+    //Check for any errors
     if (err) {
       console.error('Error executing query: ' + err.stack);
       res.status(500).send('Error fetching');
       return;
     }
+
+    //Return the selected data
     res.json(results);
   });
-});
-
-app.get("/api1", (req, res) => {
-  connection.query('CREATE TABLE testtable (userid int, lastname varchar(100))', (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-app.get("/api2", (req, res) => {
-  connection.query('CREATE DATABASE testdb', (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-app.get("/api0", (req, res) => {
-  connection.query('INSERT INTO testtable (userid, lastname) VALUES (\'1\', \'test\');', (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
 });
