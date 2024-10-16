@@ -4,7 +4,11 @@ const mysql = require('mysql')
 
 const app = express();
 const port = process.env.PORT || 8000;
-app.use(cors());
+app.use(
+  cors({
+    origin: '*'
+  })
+);
 
 //Start the server
 app.listen(port, () => {
@@ -32,7 +36,7 @@ connection.connect((err) => {
 
 //Main API request - Selects speed data from the database
 app.get("/road-data", (req, res) => {
-  
+
   //Get the variables from the request
   const route = req.query.route;
   const day = req.query.day;;
