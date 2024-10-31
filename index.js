@@ -37,14 +37,11 @@ function connectToDB() {
   });
 }
 
+//Connect to the database server
+connectToDB();
+
 //Main API request - Selects speed data from the database
 app.get("/road-data", (req, res) => {
-  //Make sure there is a connection to the database
-  if (connectToDB() == false) {
-    res.status(500).send('Error connecting to database');
-    return;
-  }
-
   //Get the variables from the request
   const route = req.query.route;
   const day = req.query.day;
